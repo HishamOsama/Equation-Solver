@@ -1,0 +1,81 @@
+classdef GeneralMethod
+    %GeneralMethod Root Finder
+    properties
+        lowBound = -100;
+        highBound = 100;
+        delta = 0.01;
+        eps = 0.001;
+    end
+    
+    methods
+        function obj = GeneralMethod()
+        end
+        
+        function result = solve(obj,equationStr)
+            % attempting to use Birge Vieta Method first for better handling
+            % of multiple roots.
+            
+            result = obj.attemptBirgeVieta(equationStr);
+            if (~isempty(result))
+                return;
+            end
+            equation = obj.getEquation(equationStr);
+            rightPointer= obj.highBound;
+            leftPointer = rightPointer - obj.delta;
+            while (leftPointer > obj.lowBound)
+                lowValue = equation(leftPointer);
+                hiValue = equation(rightPointer);
+                if (obj.isCriteriaMet(lowValue, hiValue))
+                    solver = TernaryMethod(equation);
+                    foundRoot = solver.solve(leftPointer, rightPointer, 0.0001, 1000);
+                    if (length(find(result == foundRoot)) <= 0)
+                        result = [result; foundRoot];
+                   end
+                end
+                rightPointer = leftPointer;
+                leftPointer = rightPointer - obj.delta;
+            end
+            for i = 1:length(result)
+                
+            end
+        end
+        
+        function equation = getEquation(~,equationStr)
+            symbolicEquation = sym(equationStr);
+            equation = matlabFunction(symbolicEquation);
+            return;
+        end
+        
+        function checkResult = isCriteriaMet(~,lowValue, hiValue)
+            checkResult = false;
+            if (lowValue * hiValue <= 0)
+                checkResult = true;
+            end
+        end
+        
+        function result = attemptBirgeVieta(~,equation)
+            solver = Methods.BirgeVietaMRMethod(equation);
+            result = solver.solve(1, 0.001, 10);
+            return;
+        end
+        
+        function addData(~,handles,xrOld,xr,ea,i)
+            data = get(handles.uitable1,'data');
+            data(end+1,1) = {xrOld};
+            data(end,2) = {xr};
+            data(end,3) = {ea};
+            data(end,4) = {(ea/xr)*100};
+            set(handles.uitable1,'data',data);
+        end
+        
+        function addAnswer(obj,handles,iterations,time)
+            obj.answer = [obj.answer;obj.xArray(length(obj.xArray))];
+            obj.answer = [obj.answer;iterations];
+            obj.answer = [obj.answer;obj.eArray(length(obj.eArray))];
+            obj.answer = [obj.answer;time];
+            Utils.GraphPlotter.addAnswers(handles,obj.answer);
+        end
+    end
+    
+end
+
